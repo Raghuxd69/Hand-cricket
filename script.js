@@ -21,6 +21,8 @@ let currentRoom = null;
 let isPlayer1 = false;
 let isSecondInnings = false;
 let isComputer = false;
+let runInput = null;
+let timer = null;
 
 window.createRoom = function () {
     const room = document.getElementById('roomInput').value;
@@ -31,7 +33,9 @@ window.createRoom = function () {
         player2: null,
         player1Score: 0,
         player2Score: 0,
-        target: null
+        target: null,
+        player1Run: null,
+        player2Run: null
     }).then(() => {
         currentRoom = room;
         isPlayer1 = true;
@@ -63,96 +67,96 @@ window.playWithComputer = function () {
     document.getElementById('turnInput').style.display = 'block';
 }
 
-window.playTurn = function () {
+window.submitRun = function () {
     const run = parseInt(document.getElementById('runInput').value);
     if (run < 1 || run > 6) {
         alert('Enter a valid run between 1 and 6');
         return;
     }
-    const out = Math.random() < 0.1; // 10% chance of getting out, you can adjust this logic
-
-    if (isComputer) {
-        playTurnWithComputer(run, out);
-    } else {
-        playTurnWithPlayer(run, out);
+    runInput = run;
+    if (!isComputer) {
+        const roomRef = ref(database, `rooms/${currentRoom}`);
+        if (isPlayer1) {
+            update(roomRef, { player1Run: run });
+        } else {
+            update(roomRef, { player2Run: run });
+        }
+    }
+    if (!timer) {
+        startTimer();
     }
 }
 
-function playTurnWithPlayer(run, out) {
+function startTimer() {
+    let timeLeft = 3;
+    document.getElementById('timer').innerText = timeLeft;
+    document.getElementById('timer').style.display = 'block';
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            timer = null;
+            document.getElementById('timer').style.display = 'none';
+            if (isComputer) {
+                playTurnWithComputer(runInput);
+            } else {
+                playTurnWithPlayer();
+            }
+        }
+    }, 1000);
+}
+
+function playTurnWithPlayer() {
     const roomRef = ref(database, `rooms/${currentRoom}`);
 
     get(roomRef).then(snapshot => {
         const data = snapshot.val();
-        if (!data) return;
+        if (!data || data.player1Run === null || data.player2Run === null) {
+            return;
+        }
+
+        const run1 = data.player1Run;
+        const run2 = data.player2Run;
+        const out = run1 === run2;
 
         if (data.target === null) { // First innings
             if (isPlayer1) {
                 update(roomRef, {
-                    player1Score: data.player1Score + run
+                    player1Score: data.player1Score + run1,
+                    player1Run: null,
+                    player2Run: null
                 }).then(() => {
                     if (out) {
                         update(roomRef, { target: data.player1Score + 1 });
                         document.getElementById('game').innerText += `\nInnings over! Target for Player 2: ${data.player1Score + 1}`;
                         isSecondInnings = true;
                     } else {
-                        document.getElementById('game').innerText += `\nPlayer 1 played ${run}, total score: ${data.player1Score + run}`;
+                        document.getElementById('game').innerText += `\nPlayer 1 played ${run1}, total score: ${data.player1Score + run1}`;
+                    }
+                });
+            } else {
+                update(roomRef, {
+                    player2Score: data.player2Score + run2,
+                    player1Run: null,
+                    player2Run: null
+                }).then(() => {
+                    if (out) {
+                        document.getElementById('game').innerText += `\nPlayer 2 is out!`;
+                        document.getElementById('turnInput').style.display = 'none';
+                    } else {
+                        document.getElementById('game').innerText += `\nPlayer 2 played ${run2}, total score: ${data.player2Score + run2}`;
                     }
                 });
             }
         } else { // Second innings
             if (!isPlayer1) {
                 update(roomRef, {
-                    player2Score: data.player2Score + run
+                    player2Score: data.player2Score + run2,
+                    player1Run: null,
+                    player2Run: null
                 }).then(() => {
-                    if (out || data.player2Score + run >= data.target) {
-                        const winner = data.player2Score + run >= data.target ? 'Player 2' : 'Player 1';
-                        document.getElementById('game').innerText += `\nGame over! Winner: ${winner}`;
-                        document.getElementById('turnInput').style.display = 'none';
-                    } else {
-                        document.getElementById('game').innerText += `\nPlayer 2 played ${run}, total score: ${data.player2Score + run}`;
-                    }
-                });
-            }
-        }
-    });
-}
-
-function playTurnWithComputer(run, out) {
-    const computerRun = Math.floor(Math.random() * 6) + 1; // Computer randomly chooses a run between 1 and 6
-    let data = JSON.parse(localStorage.getItem('computerGameData')) || { player1Score: 0, player2Score: 0, target: null };
-
-    if (data.target === null) { // First innings
-        data.player1Score += run;
-        if (out) {
-            data.target = data.player1Score + 1;
-            document.getElementById('game').innerText += `\nYou are out! Target for Computer: ${data.target}`;
-            isSecondInnings = true;
-        } else {
-            document.getElementById('game').innerText += `\nYou played ${run}, total score: ${data.player1Score}`;
-        }
-    } else { // Second innings
-        data.player2Score += computerRun;
-        if (out || data.player2Score >= data.target) {
-            const winner = data.player2Score >= data.target ? 'Computer' : 'You';
-            document.getElementById('game').innerText += `\nComputer played ${computerRun}. Game over! Winner: ${winner}`;
-            document.getElementById('turnInput').style.display = 'none';
-            localStorage.removeItem('computerGameData');
-            return;
-        } else {
-            document.getElementById('game').innerText += `\nComputer played ${computerRun}, total score: ${data.player2Score}`;
-        }
-    }
-
-    localStorage.setItem('computerGameData', JSON.stringify(data));
-}
-
-onValue(ref(database, 'rooms'), snapshot => {
-    snapshot.forEach(roomSnapshot => {
-        const room = roomSnapshot.key;
-        const data = roomSnapshot.val();
-        if (data.player2 !== null && currentRoom === room) {
-            document.getElementById('game').innerText = `Game started in room ${room}`;
-            document.getElementById('turnInput').style.display = 'block';
-        }
-    });
-});
+                    if (out || data.player2Score + run2 >= data.target) {
+                        const winner = data.player2
