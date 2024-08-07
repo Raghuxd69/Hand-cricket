@@ -1,64 +1,46 @@
 body {
-    font-family: Arial, sans-serif;
-    background-image: url('https://example.com/cricket-background.jpg'); /* Replace with an actual URL */
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    color: white;
-    text-shadow: 2px 2px 4px #000000;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background-color: #f0f8ff;
+  background-image: url('cricket_background.jpg'); /* Add your own cricket-themed background image */
+  background-size: cover;
+  color: #333;
 }
 
-#container {
-    text-align: center;
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 20px;
-    border-radius: 10px;
-}
-
-h1 {
-    margin-bottom: 20px;
-}
-
-#game {
-    margin-top: 20px;
-    font-size: 18px;
-}
-
-#turnInput {
-    margin-top: 20px;
-}
-
-#timer {
-    margin-top: 10px;
-    font-size: 24px;
-}
-
-input[type="text"],
-input[type="number"] {
-    padding: 10px;
-    font-size: 16px;
-    margin: 10px;
-    width: 200px;
-    border: none;
-    border-radius: 5px;
+#container, #multiplayerOptions, #gameArea {
+  margin: 20px auto;
+  padding: 20px;
+  width: 300px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin: 10px;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-    background-color: #4CAF50;
-    color: white;
-    transition: background-color 0.3s ease;
+  margin: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 button:hover {
-    background-color: #45a049;
+  background-color: #0056b3;
+}
+
+#game {
+  margin: 20px 0;
+}
+
+#turnInput {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#turnInput input, #turnInput button {
+  margin: 5px;
 }
