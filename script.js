@@ -159,4 +159,54 @@ function playTurnWithPlayer() {
                     player2Run: null
                 }).then(() => {
                     if (out || data.player2Score + run2 >= data.target) {
-                        const winner = data.player2
+                        const winner = data.player2Score + run2 >= data.target ? 'Player 2' : 'Player 1';
+                        document.getElementById('game').innerText += `\nGame over! Winner: ${winner}`;
+                        document.getElementById('turnInput').style.display = 'none';
+                    } else {
+                        document.getElementById('game').innerText += `\nPlayer 2 played ${run2}, total score: ${data.player2Score + run2}`;
+                    }
+                });
+            }
+        }
+    });
+}
+
+function playTurnWithComputer(run) {
+    const computerRun = Math.floor(Math.random() * 6) + 1; // Computer randomly chooses a run between 1 and 6
+    let data = JSON.parse(localStorage.getItem('computerGameData')) || { player1Score: 0, player2Score: 0, target: null };
+
+    if (data.target === null) { // First innings
+        data.player1Score += run;
+        if (run === computerRun) {
+            data.target = data.player1Score + 1;
+            document.getElementById('game').innerText += `\nYou are out! Target for Computer: ${data.target}`;
+            isSecondInnings = true;
+        } else {
+            document.getElementById('game').innerText += `\nYou played ${run}, total score: ${data.player1Score}`;
+        }
+    } else { // Second innings
+        data.player2Score += computerRun;
+        if (run === computerRun || data.player2Score >= data.target) {
+            const winner = data.player2Score >= data.target ? 'Computer' : 'You';
+            document.getElementById('game').innerText += `\nComputer played ${computerRun}. Game over! Winner: ${winner}`;
+            document.getElementById('turnInput').style.display = 'none';
+            localStorage.removeItem('computerGameData');
+            return;
+        } else {
+            document.getElementById('game').innerText += `\nComputer played ${computerRun}, total score: ${data.player2Score}`;
+        }
+    }
+
+    localStorage.setItem('computerGameData', JSON.stringify(data));
+}
+
+onValue(ref(database, 'rooms'), snapshot => {
+    snapshot.forEach(roomSnapshot => {
+        const room = roomSnapshot.key;
+        const data = roomSnapshot.val();
+        if (data.player2 !== null && currentRoom === room) {
+            document.getElementById('game').innerText = `Game started in room ${room}`;
+            document.getElementById('turnInput').style.display = 'block';
+        }
+    });
+});
